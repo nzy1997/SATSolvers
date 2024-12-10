@@ -55,7 +55,9 @@ end
     cl4 = SATClause(5, Int[], [3,4])
     cl5 = SATClause(5, [1,5], [3])
     problem = SATProblem([cl1, cl2, cl3, cl4, cl5])
-    @test directional_resolution(problem)
+    res1,ans1 = directional_resolution(problem)
+    @test res1 == true
+    @test check_answer(problem, ans1) == true
 
 
     cl1 = SATClause(5, Int[], Int[])
@@ -64,8 +66,8 @@ end
     cl4 = SATClause(5, Int[], [3,4])
     cl5 = SATClause(5, [1,5], [3])
     problem = SATProblem([cl1, cl2, cl3, cl4, cl5])
-    @test directional_resolution(problem) == false
-
+    res1,ans1 =directional_resolution(problem)
+    @test res1 == false
 
     cl1 = SATClause(3, [1,2,3], Int[])
     cl2 = SATClause(3, [1,2], [3])
@@ -76,7 +78,8 @@ end
     cl7 = SATClause(3, [3], [1,2])
     cl8 = SATClause(3, Int[], [1,2,3])
     problem = SATProblem([cl1, cl2, cl3, cl4, cl5, cl6, cl7, cl8])
-    @test directional_resolution(problem) == false
+    res1,ans1 =directional_resolution(problem) 
+    @test res1 == false
 end
 
 @testset "random_problem_test" begin
