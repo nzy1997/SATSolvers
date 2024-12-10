@@ -1,4 +1,7 @@
 function directional_resolution(problem::SATProblem)
+    if check_empty_clause(problem)
+        return false
+    end
     buskets = [geticlauses(i,problem) for i in 1:literal_count(problem)]
 
     for i in 1:literal_count(problem)
@@ -31,11 +34,23 @@ function resolve_clause(cl1::SATClause, cl2::SATClause, literal::Int)
 end
 
 function brute_force(problem::SATProblem)
-    for i in 1:2^literal_count(problem)
-        answer = [i & (1 << j) != 0 for j in 1:literal_count(problem)]
+    if check_empty_clause(problem)
+        return false, []
+    end
+    for i in 0:2^literal_count(problem)-1
+        answer = [i & (1 << j) != 0 for j in 0:literal_count(problem)-1]
         if check_answer(problem, answer)
             return true, answer
         end
     end
     return false, []
+end
+
+function check_empty_clause(pb::SATProblem)
+    for cl in pb.clauses
+        if cl.true_literals == [] && cl.false_literals == []
+            return true
+        end
+    end
+    return false
 end

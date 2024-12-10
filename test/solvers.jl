@@ -1,4 +1,4 @@
-using Test, SATSolvers
+using Test, SATSolvers,Random
 
 @testset "brute_force" begin
     cl1 = SATClause(5, [2], [1])
@@ -56,5 +56,21 @@ end
 
     problem = SATProblem([cl1, cl2, cl3, cl4, cl5])
 
-    buskets = directional_resolution(problem)
+    @test directional_resolution(problem)
+end
+
+@testset "random_problem" begin
+    Random.seed!(1)
+    num = 100
+    for i in 1:num
+        literal_num = rand(1:10)
+        clause_num = rand(1:20)
+        problem = random_problem(literal_num, clause_num)
+        res1 = directional_resolution(problem)
+        res2,ans = brute_force(problem)
+        @test res1 == res2
+        if res1 != res2
+            @show problem
+        end
+    end
 end

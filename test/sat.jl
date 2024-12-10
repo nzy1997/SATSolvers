@@ -50,3 +50,8 @@ end
     @test check_answer(problem, [false, true, false, false, false]) == false
 end
 
+@testset "random_problem" begin
+    problem = random_problem(5, 5)
+    @test literal_count(problem) == 5
+    @test clause_count(problem) == 5
+end
