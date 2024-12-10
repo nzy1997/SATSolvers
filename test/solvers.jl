@@ -40,11 +40,12 @@ end
     cl4 = SATClause(5, Int[], [3,4])
     cl5 = SATClause(5, [1,5], [3])
 
-    @test check_intersections(cl1, cl2) == true
-    @test check_intersections(cl1, cl3) == true
-    @test check_intersections(cl1, cl4) == false
-    @test check_intersections(cl1, cl5) == true
-    @test check_intersections(cl2, cl3) == false
+    @test check_intersections(cl1, cl2,1) == true
+    @test check_intersections(cl1, cl3,1) == false
+    @test check_intersections(cl1, cl3,2) == true
+    @test check_intersections(cl1, cl4,3) == false
+    @test check_intersections(cl1, cl5,2) == false
+    @test check_intersections(cl2, cl3,4) == false
 end
 
 @testset "directional_resolution" begin
@@ -53,22 +54,45 @@ end
     cl3 = SATClause(5, [4], [2])
     cl4 = SATClause(5, Int[], [3,4])
     cl5 = SATClause(5, [1,5], [3])
-
     problem = SATProblem([cl1, cl2, cl3, cl4, cl5])
-
     @test directional_resolution(problem)
+
+
+    cl1 = SATClause(5, Int[], Int[])
+    cl2 = SATClause(5, [1], [3])
+    cl3 = SATClause(5, [4], [2])
+    cl4 = SATClause(5, Int[], [3,4])
+    cl5 = SATClause(5, [1,5], [3])
+    problem = SATProblem([cl1, cl2, cl3, cl4, cl5])
+    @test directional_resolution(problem) == false
+
+
+    cl1 = SATClause(3, [1,2,3], Int[])
+    cl2 = SATClause(3, [1,2], [3])
+    cl3 = SATClause(3, [1,3], [2])
+    cl4 = SATClause(3, [1], [2,3])
+    cl5 = SATClause(3, [2,3], [1])
+    cl6 = SATClause(3, [2], [1,3])
+    cl7 = SATClause(3, [3], [1,2])
+    cl8 = SATClause(3, Int[], [1,2,3])
+    problem = SATProblem([cl1, cl2, cl3, cl4, cl5, cl6, cl7, cl8])
+    @test directional_resolution(problem) == false
 end
 
-@testset "random_problem" begin
-    Random.seed!(1)
+@testset "random_problem_test" begin
+    Random.seed!(345)
     num = 100
     for i in 1:num
         literal_num = rand(1:10)
-        clause_num = rand(1:20)
+        clause_num = rand(1:50)
         problem = random_problem(literal_num, clause_num)
-        res1 = directional_resolution(problem)
-        res2,ans = brute_force(problem)
+        res1,ans1 = directional_resolution(problem)
+        res2,ans2 = brute_force(problem)
         @test res1 == res2
+        if res1 
+            @test check_answer(problem, ans1) == true
+            @test check_answer(problem, ans2) == true
+        end
         if res1 != res2
             @show problem
         end
