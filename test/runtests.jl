@@ -1,6 +1,10 @@
 using SATSolvers
 using Test
 
-@testset "SATSolvers.jl" begin
-    # Write your tests here.
+@testset "sat.jl" begin
+    include("sat.jl")
+end
+
+@testset "solvers.jl" begin
+    include("solvers.jl")
 end

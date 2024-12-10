@@ -1,23 +1,41 @@
-"""
-    SATProblem
+struct SATClause
+    literal_num::Int
+    true_literals::Vector{Int}
+    false_literals::Vector{Int}
 
-A SAT problem is a set of clauses, each of which is a set of literals.
-
-# Fields
-- `clauses::Matrix{Int}`: A matrix where each row is a clause, 1 stands for a positive literal and 2 for a negative literal, 0 for no literal.
-"""
-struct SATProblem
-    clauses::Matrix{Int}
+    function SATClause(literal_num::Int, true_literals::Vector{Int}, false_literals::Vector{Int})
+        (true_literals == []) || @assert maximum(true_literals) ≤ literal_num
+        (false_literals == []) || @assert maximum(false_literals) ≤ literal_num
+        return new(literal_num, sort(true_literals), sort(false_literals))
+    end
 end
 
-variable_count(problem::SATProblem) = size(problem.clauses, 2)
-clause_count(problem::SATProblem) = size(problem.clauses, 1)
+function always_true_clause(cl::SATClause)
+    return any(x->x ∈ cl.false_literals, cl.true_literals) 
+end
+
+struct SATProblem
+    clauses::Vector{SATClause}
+end
+
+literal_count(problem::SATProblem) = problem.clauses[1].literal_num
+clause_count(problem::SATProblem) = length(problem.clauses)
  
 
-function check_clause(clause::AbstractArray{Int}, answer::AbstractVector{Bool})
-    return mapreduce(x->x, |, [clause[i] == 0 ? false : (clause[i] == 1 ? answer[i] : !answer[i]) for i in 1:length(clause)]) 
-end
-function check_answer(problem::SATProblem, answer::AbstractVector{Bool})
-    return mapreduce(x->check_clause(x,answer), &, eachrow(problem.clauses))
+function check_clause(clause::SATClause, answer::AbstractVector{Bool})
+    for i in clause.true_literals
+        if answer[i]
+            return true
+        end
+    end
+    for i in clause.false_literals
+        if !answer[i]
+            return true
+        end
+    end
+    return false
 end
 
+function check_answer(problem::SATProblem, answer::AbstractVector{Bool})
+    return mapreduce(x->check_clause(x,answer), &, (problem.clauses))
+end
