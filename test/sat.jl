@@ -68,12 +68,15 @@ end
         res1,ans1 = directional_resolution(problem)
         res2,ans2 = brute_force(problem)
         res3,ans3 = literal_branching(problem)
+        res4,ans4 = clause_branching(problem)
         @test res1 == res2
         @test res1 == res3
+        @test res1 == res4
         if res1 
             @test check_answer(problem, ans1) == true
             @test check_answer(problem, ans2) == true
             @test check_answer(problem, ans3) == true
+            @test check_answer(problem, ans4) == true
         end
         if res1 != res2
             @show problem

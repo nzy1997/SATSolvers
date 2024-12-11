@@ -81,3 +81,22 @@ end
     res1,ans1 =directional_resolution(problem) 
     @test res1 == false
 end
+
+@testset "check_empty_clause" begin
+    cl1 = SATClause(5, [2], [1])
+    cl2 = SATClause(5, [1], [3])
+    cl3 = SATClause(5, [4], [2])
+    cl4 = SATClause(5, Int[], [3,4])
+    cl5 = SATClause(5, [1,5], [3])
+    problem = SATProblem([cl1, cl2, cl3, cl4, cl5])
+    @test check_empty_clause(problem) == false
+
+    cl1 = SATClause(5, Int[], Int[])
+    cl2 = SATClause(5, [1], [3])
+    cl3 = SATClause(5, [4], [2])
+    cl4 = SATClause(5, Int[], [3,4])
+    cl5 = SATClause(5, [1,5], [3])
+    problem = SATProblem([cl1, cl2, cl3, cl4, cl5])
+    @test check_empty_clause(problem) == true
+end
+

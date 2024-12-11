@@ -10,7 +10,7 @@ function directional_resolution(problem::SATProblem)
 				rcl = resolve_clause(cl1, cl2, i)
 				if always_true_clause(rcl)
 					continue
-				elseif rcl.true_literals == [] && rcl.false_literals == []
+				elseif check_empty_clause(rcl)
 					return false,[]
 				else
                     busket_num = minimum(rcl.true_literals ∪ rcl.false_literals)
@@ -63,11 +63,5 @@ function brute_force(problem::SATProblem)
 	return false, []
 end
 
-function check_empty_clause(pb::SATProblem)
-	for cl in pb.clauses
-		if cl.true_literals == [] && cl.false_literals == []
-			return true
-		end
-	end
-	return false
-end
+check_empty_clause(cl::SATClause) = isempty(cl.true_literals) && isempty(cl.false_literals)
+check_empty_clause(pb::SATProblem) = any(check_empty_clause, pb.clauses)

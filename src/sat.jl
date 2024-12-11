@@ -4,8 +4,8 @@ struct SATClause
     false_literals::Vector{Int}
 
     function SATClause(literal_num::Int, true_literals::Vector{Int}, false_literals::Vector{Int})
-        (true_literals == []) || @assert maximum(true_literals) ≤ literal_num
-        (false_literals == []) || @assert maximum(false_literals) ≤ literal_num
+        isempty(true_literals) || @assert maximum(true_literals) ≤ literal_num
+        isempty(false_literals) || @assert maximum(false_literals) ≤ literal_num
         return new(literal_num, sort(true_literals), sort(false_literals))
     end
 end
@@ -49,7 +49,7 @@ end
 
 function random_problem(literal_num::Int, clause_num::Int)
     clauses = SATClause[]
-    for i in 1:clause_num
+    for _ in 1:clause_num
         true_literals = sample(1:literal_num, rand(0:literal_num-1), replace=false)
         false_literals = sample(setdiff(1:literal_num,true_literals), rand(0:literal_num-length(true_literals)), replace=false)
         push!(clauses, SATClause(literal_num, true_literals, false_literals))

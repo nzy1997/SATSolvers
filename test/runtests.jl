@@ -8,3 +8,7 @@ end
 @testset "dpsolvers.jl" begin
     include("dpsolvers.jl")
 end
+
+@testset "branching.jl" begin
+    include("branching.jl")
+end
