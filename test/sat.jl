@@ -1,4 +1,4 @@
-using SATSolvers,Test
+using SATSolvers,Test,Random
 
 @testset "SATProblem" begin
     cl1 = SATClause(5, [2], [1])
@@ -51,6 +51,7 @@ end
 end
 
 @testset "random_problem" begin
+    Random.seed!(1)
     problem = random_problem(5, 5)
     @test literal_count(problem) == 5
     @test clause_count(problem) == 5
