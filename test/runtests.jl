@@ -5,6 +5,6 @@ using Test
     include("sat.jl")
 end
 
-@testset "solvers.jl" begin
-    include("solvers.jl")
+@testset "dpsolvers.jl" begin
+    include("dpsolvers.jl")
 end

@@ -56,3 +56,27 @@ end
     @test literal_count(problem) == 5
     @test clause_count(problem) == 5
 end
+
+
+@testset "random_problem_test" begin
+    Random.seed!(345)
+    num = 100
+    for i in 1:num
+        literal_num = rand(1:10)
+        clause_num = rand(1:50)
+        problem = random_problem(literal_num, clause_num)
+        res1,ans1 = directional_resolution(problem)
+        res2,ans2 = brute_force(problem)
+        res3,ans3 = literal_branching(problem)
+        @test res1 == res2
+        @test res1 == res3
+        if res1 
+            @test check_answer(problem, ans1) == true
+            @test check_answer(problem, ans2) == true
+            @test check_answer(problem, ans3) == true
+        end
+        if res1 != res2
+            @show problem
+        end
+    end
+end

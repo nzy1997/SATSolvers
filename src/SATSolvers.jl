@@ -9,6 +9,8 @@ export SATProblem,literal_count,clause_count,check_clause,check_answer,SATClause
 
 export directional_resolution,brute_force,resolve_clause,check_intersections
 
+export literal_branching
 include("sat.jl")
-include("solvers.jl")
+include("dpsolvers.jl")
+include("branching.jl")
 end

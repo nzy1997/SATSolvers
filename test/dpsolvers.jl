@@ -81,23 +81,3 @@ end
     res1,ans1 =directional_resolution(problem) 
     @test res1 == false
 end
-
-@testset "random_problem_test" begin
-    Random.seed!(345)
-    num = 100
-    for i in 1:num
-        literal_num = rand(1:10)
-        clause_num = rand(1:50)
-        problem = random_problem(literal_num, clause_num)
-        res1,ans1 = directional_resolution(problem)
-        res2,ans2 = brute_force(problem)
-        @test res1 == res2
-        if res1 
-            @test check_answer(problem, ans1) == true
-            @test check_answer(problem, ans2) == true
-        end
-        if res1 != res2
-            @show problem
-        end
-    end
-end
