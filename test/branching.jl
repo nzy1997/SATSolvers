@@ -53,7 +53,7 @@ end
     problem = BranchSATProblem(Int[], fill(false, 5),SATProblem([cl1, cl2, cl3, cl4, cl5,cl6]))
     sat = unit_resolution(problem)
 
-    @show sat.satproblem.clauses == cl6
+    @test sat.satproblem.clauses == [cl6]
 end
 
 @testset "literal_branching dpll" begin
