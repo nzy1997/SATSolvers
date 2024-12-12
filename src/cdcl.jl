@@ -11,7 +11,15 @@ function cdcl(problem::SATProblem)
 
     values = [LiteralStatus(false, -1, Int[]) for _ in 1:literal_count(problem)]
     undifined_varible_num = [length(cl.true_literals) + length(cl.false_literals) for cl in problem.clauses]
-    unit_resolution!(problem,values,level,undifined_variable_num)
+    unit_resolution!(problem,values,0,undifined_variable_num)
+    if any(==(0), undifined_varible_num) 
+        return false, []
+    end
+
+    literal = findfirst(x -> x.decision_level == -1, values)
+
+    values[literal] = LiteralStatus(true, 1, Int[])
+    
 
 
 end
@@ -45,12 +53,10 @@ function unit_resolution!(problem::SATProblem,values::Vector{LiteralStatus},leve
             cl = problem.clauses[i]
             if (unit_literal in cl.true_literals) && (!unit_value) || (unit_literal in cl.false_literals) && (unit_value)
                 undifined_variable_num[i] -= 1
-            end
-            if unit_literal in cl.false_literals
-                cl.false_literals = setdiff(cl.false_literals,[unit_literal])
+            elseif (unit_literal in cl.true_literals) && (unit_value) || (unit_literal in cl.false_literals) && (!unit_value)
+                undifined_variable_num[i] = -1
             end
         end
-
     end
     return values, undifined_varible_num
 end
