@@ -65,24 +65,33 @@ end
         literal_num = rand(1:10)
         clause_num = rand(1:50)
         problem = random_problem(literal_num, clause_num)
+        # @show i
+        # @show problem
         res1,ans1 = directional_resolution(problem)
         res2,ans2 = brute_force(problem)
         res3,ans3 = literal_branching(problem)
         res4,ans4 = clause_branching(problem)
         res5,ans5 = literal_branching(problem;dpll = true)
+        res6,ans6 = cdcl(problem)
         @test res1 == res2
         @test res1 == res3
         @test res1 == res4
         @test res1 == res5
+        @test res1 == res6
+        if res1 != res6
+            @show problem
+        end
         if res1 
             @test check_answer(problem, ans1) == true
             @test check_answer(problem, ans2) == true
             @test check_answer(problem, ans3) == true
             @test check_answer(problem, ans4) == true
             @test check_answer(problem, ans5) == true
+            @test check_answer(problem, ans6) == true
+            if !check_answer(problem, ans6)
+                @show problem
+            end
         end
-        if res1 != res2
-            @show problem
-        end
+
     end
 end

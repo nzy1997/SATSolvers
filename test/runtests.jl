@@ -12,3 +12,7 @@ end
 @testset "branching.jl" begin
     include("branching.jl")
 end
+
+@testset "cdcl.jl" begin
+    include("cdcl.jl")
+end
