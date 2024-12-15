@@ -11,36 +11,34 @@ function cdcl(problem::SATProblem)
 
 	values = [LiteralStatus(false, -1, Int[]) for _ in 1:literal_count(problem)]
 	undefined_variable_num = [length(cl.true_literals) + length(cl.false_literals) for cl in problem.clauses]
-	unit_resolution!(problem, values, 0, undefined_variable_num)
+	values,undefined_variable_num = unit_resolution!(problem, values, 0, undefined_variable_num)
 	if any(==(0), undefined_variable_num)
 		return false, []
 	end
 
 	level = 0
 
-    uvn_record = [undefined_variable_num]
-    values_record = [values]
-
+    uvn_record = [copy(undefined_variable_num)]
+    values_record = [copy(values)]
 	while true
 		if all(==(-1), undefined_variable_num)
 			return true, getfield.(values,:value)
 		end
 		level += 1
-
 		literal = findfirst(x -> x.decision_level == -1, values)
 
 		#decide literal to be true
 		values, undefined_variable_num = decide_literal!(problem, values, level, undefined_variable_num, true, literal, Int[])
-		push!(uvn_record, undefined_variable_num)
-		push!(values_record, values)
+		push!(uvn_record, copy(undefined_variable_num))
+		push!(values_record, copy(values))
     	values, undefined_variable_num = unit_resolution!(problem, values, level, undefined_variable_num)
 
 		while any(==(0), undefined_variable_num)
 			if level == 0
 				return false, []
 			end
-
 			fuip,mlevel,recorded_list,val = first_unique_implication_point(problem, values, level, undefined_variable_num)
+
             level = mlevel
             values = values_record[mlevel+1]
             undefined_variable_num = uvn_record[mlevel+1]
@@ -48,12 +46,11 @@ function cdcl(problem::SATProblem)
 			values_record = values_record[1:mlevel]
 			uvn_record = uvn_record[1:mlevel]
             values, undefined_variable_num = decide_literal_with_unit_resolution!(problem, values, level, undefined_variable_num, val, fuip, recorded_list)
-
-			push!(values_record, values)
-			push!(uvn_record, undefined_variable_num)
+			push!(values_record, copy(values))
+			push!(uvn_record, copy(undefined_variable_num))
 		end
-		uvn_record[end] = undefined_variable_num
-		values_record[end] = values
+		uvn_record[end] = copy(undefined_variable_num)
+		values_record[end] = copy(values)
 	end
 end
 
@@ -64,10 +61,14 @@ function first_unique_implication_point(problem::SATProblem, values::Vector{Lite
 	var_queue = [i for i in cl.true_literals ∪ cl.false_literals if values[i].decision_level == level]
 	recorded_list = [i for i in cl.true_literals ∪ cl.false_literals if values[i].decision_level < level]
 	while true
+		# @show "2"
 		i = var_queue[1]
         literal_status = values[popfirst!(var_queue)]
 		if isempty(literal_status.decision_parents)
 			var_queue = var_queue ∪ i
+			if length(var_queue) == 1
+				break
+			end
 			continue
 		end
 		for i in literal_status.decision_parents
@@ -81,8 +82,13 @@ function first_unique_implication_point(problem::SATProblem, values::Vector{Lite
         if length(var_queue) == 1
             break
         end
+
 	end
+	if isempty(recorded_list)
+		mlevel = level
+	else
     mlevel = maximum([values[i].decision_level for i in recorded_list])
+	end
     return var_queue[1], mlevel, recorded_list, !values[var_queue[1]].value
 end
 
@@ -116,19 +122,21 @@ function decide_literal!(problem::SATProblem, values::Vector{LiteralStatus}, lev
     for i in 1:length(problem.clauses)
 		cl = problem.clauses[i]
         if undefined_variable_num[i] == -1
-            if (lit_num in cl.true_literals && (!b)) || (lit_num in cl.false_literals && (b))
-				for i in cl.true_literals ∪ cl.false_literals
-					ib = i in cl.true_literals
-					if values[i].decision_level >=0 
-						if values[i].value == ib
-							break
-						end
-					end
-				end
-			end
-			continue
-        end
-        if (lit_num in cl.true_literals) && (!b) || (lit_num in cl.false_literals) && (b)
+			undefined_variable_num[i] = update_uvn(cl, values)
+            # if (lit_num in cl.true_literals && (!b)) || (lit_num in cl.false_literals && (b))
+			# 	undefined_variable_num[i] = length(cl.true_literals) + length(cl.false_literals)
+			# 	for j in cl.true_literals ∪ cl.false_literals
+			# 		ib = j in cl.true_literals
+			# 		if values[j].decision_level >=0 
+			# 			if values[j].value == ib
+			# 				undefined_variable_num[i] = -1
+			# 				break
+			# 			end
+			# 			undefined_variable_num[i] -= 1
+			# 		end
+			# 	end
+			# end
+        elseif (lit_num in cl.true_literals) && (!b) || (lit_num in cl.false_literals) && (b)
             undefined_variable_num[i] -= 1
         elseif (lit_num in cl.true_literals) && (b) || (lit_num in cl.false_literals) && (!b)
             undefined_variable_num[i] = -1
@@ -148,4 +156,23 @@ function print_state(values,undefined_variable_num,level)
 	@show undefined_variable_num
 	@show getfield.(values,:decision_level)
 	@show getfield.(values,:decision_parents)
+end
+
+function update_uvn(cl::SATClause, values::Vector{LiteralStatus})
+	res = length(cl.true_literals) + length(cl.false_literals)
+	for j in cl.true_literals ∪ cl.false_literals
+		ib = j in cl.true_literals
+		if values[j].decision_level >=0 
+			if values[j].value == ib
+				res = -1
+				break
+			end
+			res -= 1
+		end
+	end
+	return res
+end
+
+function max_level(values::Vector{LiteralStatus})
+	return maximum([x.decision_level for x in values])
 end

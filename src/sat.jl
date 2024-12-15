@@ -28,6 +28,7 @@ end
 literal_count(problem::SATProblem) = problem.clauses[1].literal_num
 clause_count(problem::SATProblem) = length(problem.clauses)
  
+literal_count(cl::SATClause) = cl.literal_num
 
 function check_clause(clause::SATClause, answer::AbstractVector{Bool})
     for i in clause.true_literals
