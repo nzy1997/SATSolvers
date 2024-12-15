@@ -84,10 +84,10 @@ end
     cl4 = SATClause(5, Int[], [3,4])
     cl5 = SATClause(5, [1,5], [3])
     problem = SATProblem([cl1, cl2, cl3, cl4, cl5])
-    sat,ans = cdcl(problem)
+    sat,answer = cdcl(problem)
 
     @test sat == true
-    @test check_answer(problem, ans) == true
+    @test check_answer(problem, answer) == true
 
 
     cl1 = SATClause(5, Int[], [1])
@@ -95,38 +95,35 @@ end
     cl3 = SATClause(5, [4], [2])
 
     problem = SATProblem([cl1, cl2, cl3])
-    sat,ans = cdcl(problem)
+    sat,answer = cdcl(problem)
     @test sat == false
-    @test ans == []
+    @test answer == []
 end
 
 @testset "cdcl" begin
-    problem = SATProblem(SATClause[SATClause(5, [1, 4, 5], Int64[]), SATClause(5, [2, 4], [3]), SATClause(5, [1, 5], [2, 3]), SATClause(5, [2], [3, 4]), SATClause(5, [4], [2]), SATClause(5, [1, 2, 3, 4], Int64[]), SATClause(5, Int64[], [2, 3]), SATClause(5, [1, 2], [3, 4]), SATClause(5, [3, 4], Int64[]), SATClause(5, [3], [5]), SATClause(5, [1, 2, 5], [3]), SATClause(5, [2, 5], Int64[]), SATClause(5, [5], [1, 2, 3]), SATClause(5, [3], [2, 4]), SATClause(5, [1], [2, 3, 4]), SATClause(5, [1], [2, 3, 4, 5]), SATClause(5, [2, 4], Int64[]), SATClause(5, [1], [5])])
-    @show sat,ans = cdcl(problem)
-end
-
-for cl in problem.clauses
-    println(cl)
+    problem = SATProblem(SATClause[SATClause(6, [3], [2]), SATClause(6, [2, 3, 4, 5, 6], [1]), SATClause(6, [3, 4], [1, 5, 6]), SATClause(6, [4, 5, 6], [1, 2, 3]), SATClause(6, [3, 4, 5, 6], Int64[]), SATClause(6, [2, 3, 4, 6], [1]), SATClause(6, [1, 2, 5], [3, 6]), SATClause(6, [5], [2]), SATClause(6, [1, 2, 3, 4, 6], Int64[]), SATClause(6, [1, 2, 3, 5, 6], Int64[]), SATClause(6, [2, 4, 5, 6], [1, 3]), SATClause(6, Int64[], [1, 2, 3, 4, 6]), SATClause(6, Int64[], [1, 2, 3, 4, 5, 6]), SATClause(6, [1, 2, 3], [4, 6]), SATClause(6, [2, 3, 6], [1, 5]), SATClause(6, [2, 4, 5], Int64[]), SATClause(6, Int64[], [2, 4, 6]), SATClause(6, [2, 6], [3, 4]), SATClause(6, [6], [1, 2, 4]), SATClause(6, Int64[], [3, 5]), SATClause(6, [2, 3], [1]), SATClause(6, [4], [1, 2, 3, 5, 6]), SATClause(6, [2, 3, 5, 6], [1]), SATClause(6, [1], [3, 4, 5, 6]), SATClause(6, [1, 2, 3, 5], [4, 6]), SATClause(6, [1, 4, 5, 6], [3]), SATClause(6, [2, 4, 5], [1, 3, 6]), SATClause(6, Int64[], [6]), SATClause(6, [1, 2], [4]), SATClause(6, [1, 3, 5, 6], Int64[]), SATClause(6, [1, 2, 3, 4, 5], [6]), SATClause(6, [1, 3, 6], [2, 4, 5]), SATClause(6, [1], [2, 6]), SATClause(6, [1, 2, 3, 5, 6], [4])])
+    @show sat,answer = cdcl(problem)
 end
 
 @testset "update_uvn" begin
     cl = SATClause(5, [2,3,4], [1,5])
 
-    values = [LiteralStatus(false, -1, Int[]) for _ in 1:literal_count(cl)]
+    values = [LiteralStatus(false, -1, Int[],1) for _ in 1:literal_count(cl)]
     @test update_uvn(cl, values) == 5
 
-    values[1]= LiteralStatus(true, 1, Int[])
+    values[1]= LiteralStatus(true, 1, Int[],2)
     @test update_uvn(cl, values) == 4
 
-    values[2]= LiteralStatus(true, 1, Int[])
+    values[2]= LiteralStatus(true, 1, Int[],0)
     @test update_uvn(cl, values) == -1
 
-    values[3]= LiteralStatus(true, 1, Int[])
+    values[3]= LiteralStatus(true, 1, Int[],1)
     @test update_uvn(cl, values) == -1
 
-    values[2]= LiteralStatus(false, 1, Int[])
+    values[2]= LiteralStatus(false, 1, Int[],0)
     @test update_uvn(cl, values) == -1 
 
-    values[3]= LiteralStatus(false, 1, Int[])
-    @test update_uvn(cl, values) == 2 
+    values[3]= LiteralStatus(false, 1, Int[],2)
+    @test update_uvn(cl, values) == 2
+
 end

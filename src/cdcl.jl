@@ -2,6 +2,7 @@ struct LiteralStatus
 	value::Bool
 	decision_level::Int
 	decision_parents::Vector{Int}
+	decision_clause::Int
 end
 
 function cdcl(problem::SATProblem)
@@ -9,9 +10,9 @@ function cdcl(problem::SATProblem)
 		return false, []
 	end
 
-	values = [LiteralStatus(false, -1, Int[]) for _ in 1:literal_count(problem)]
+	lss = [LiteralStatus(false, -1, Int[],0) for _ in 1:literal_count(problem)]
 	undefined_variable_num = [length(cl.true_literals) + length(cl.false_literals) for cl in problem.clauses]
-	values,undefined_variable_num = unit_resolution!(problem, values, 0, undefined_variable_num)
+	lss, undefined_variable_num = unit_resolution!(problem, lss, 0, undefined_variable_num)
 	if any(==(0), undefined_variable_num)
 		return false, []
 	end
@@ -19,51 +20,79 @@ function cdcl(problem::SATProblem)
 	level = 0
 
     uvn_record = [copy(undefined_variable_num)]
-    values_record = [copy(values)]
+    lss_record = [copy(lss)]
+	level_literal = Int[]
 	while true
 		if all(==(-1), undefined_variable_num)
-			return true, getfield.(values,:value)
+			return true, getfield.(lss,:value)
 		end
 		level += 1
-		literal = findfirst(x -> x.decision_level == -1, values)
+		literal = findfirst(x -> x.decision_level == -1, lss)
+		push!(level_literal, literal)
 
-		#decide literal to be true
-		values, undefined_variable_num = decide_literal!(problem, values, level, undefined_variable_num, true, literal, Int[])
+		#decide literal
+		
+		boolvalue = lss[literal].value
+		lss, undefined_variable_num = decide_literal!(problem, lss, level, undefined_variable_num, !boolvalue, literal, Int[],0)
 		push!(uvn_record, copy(undefined_variable_num))
-		push!(values_record, copy(values))
-    	values, undefined_variable_num = unit_resolution!(problem, values, level, undefined_variable_num)
+		push!(lss_record, copy(lss))
+    	lss, undefined_variable_num = unit_resolution!(problem, lss, level, undefined_variable_num)
 
 		while any(==(0), undefined_variable_num)
 			if level == 0
 				return false, []
 			end
-			fuip,mlevel,recorded_list,val = first_unique_implication_point(problem, values, level, undefined_variable_num)
 
+			fuip,mlevel,recorded_list,val,dc = first_unique_implication_point(problem, lss, level, undefined_variable_num)
+			if recorded_list == Int[] 
+				level = findlast(x -> lss[x].value, level_literal) 
+				if isnothing(level)
+					return false, []
+				end
+				level = level - 1
+				literal = level_literal[level+1]
+				level_literal = level_literal[1:level]
+				lss = lss_record[level+1]
+				lss_record = lss_record[1:(level+1)]
+				undefined_variable_num = uvn_record[level+1]
+				uvn_record = uvn_record[1:(level+1)]
+				lss[literal] = LiteralStatus(true, -1, Int[],0)
+				break
+			end
             level = mlevel
-            values = values_record[mlevel+1]
+            lss = lss_record[mlevel+1]
             undefined_variable_num = uvn_record[mlevel+1]
 
-			values_record = values_record[1:mlevel]
+			lss_record = lss_record[1:mlevel]
 			uvn_record = uvn_record[1:mlevel]
-            values, undefined_variable_num = decide_literal_with_unit_resolution!(problem, values, level, undefined_variable_num, val, fuip, recorded_list)
-			push!(values_record, copy(values))
+	
+
+            lss, undefined_variable_num = decide_literal_with_unit_resolution!(problem, lss, level, undefined_variable_num, val, fuip, recorded_list,dc)
+			push!(lss_record, copy(lss))
 			push!(uvn_record, copy(undefined_variable_num))
 		end
 		uvn_record[end] = copy(undefined_variable_num)
-		values_record[end] = copy(values)
+		lss_record[end] = copy(lss)
 	end
 end
 
 
-function first_unique_implication_point(problem::SATProblem, values::Vector{LiteralStatus}, level::Int, undefined_variable_num::Vector{Int})
-	cl = problem.clauses[findfirst(==(0), undefined_variable_num)]
+function first_unique_implication_point(problem::SATProblem, lss::Vector{LiteralStatus}, level::Int, undefined_variable_num::Vector{Int})
+	cl_num = findfirst(==(0), undefined_variable_num)
+	cl = problem.clauses[cl_num]
 
-	var_queue = [i for i in cl.true_literals ∪ cl.false_literals if values[i].decision_level == level]
-	recorded_list = [i for i in cl.true_literals ∪ cl.false_literals if values[i].decision_level < level]
+	for i in lss
+		@show i
+	end
+	@show cl
+
+	@show level
+	var_queue = [i for i in cl.true_literals ∪ cl.false_literals if lss[i].decision_level == level]
+	recorded_list = [i for i in cl.true_literals ∪ cl.false_literals if lss[i].decision_level < level]
 	while true
 		# @show "2"
 		i = var_queue[1]
-        literal_status = values[popfirst!(var_queue)]
+        literal_status = lss[popfirst!(var_queue)]
 		if isempty(literal_status.decision_parents)
 			var_queue = var_queue ∪ i
 			if length(var_queue) == 1
@@ -72,7 +101,7 @@ function first_unique_implication_point(problem::SATProblem, values::Vector{Lite
 			continue
 		end
 		for i in literal_status.decision_parents
-			if values[i].decision_level < level
+			if lss[i].decision_level < level
 				recorded_list = recorded_list ∪ i
 			else
                 var_queue = var_queue ∪ i
@@ -87,13 +116,13 @@ function first_unique_implication_point(problem::SATProblem, values::Vector{Lite
 	if isempty(recorded_list)
 		mlevel = level
 	else
-    mlevel = maximum([values[i].decision_level for i in recorded_list])
+    	mlevel = maximum([lss[i].decision_level for i in recorded_list])
 	end
-    return var_queue[1], mlevel, recorded_list, !values[var_queue[1]].value
+    return var_queue[1], mlevel, recorded_list, !lss[var_queue[1]].value, cl_num
 end
 
 # TODO: Not dry!!!!
-function unit_resolution!(problem::SATProblem, values::Vector{LiteralStatus}, level::Int, undefined_variable_num::Vector{Int})
+function unit_resolution!(problem::SATProblem, lss::Vector{LiteralStatus}, level::Int, undefined_variable_num::Vector{Int})
 	while true
 		unit_clause_num = findfirst(==(1), undefined_variable_num)
 		if isnothing(unit_clause_num)
@@ -104,7 +133,7 @@ function unit_resolution!(problem::SATProblem, values::Vector{LiteralStatus}, le
 		parents = Int[]
 
 		for i in unit_clause.true_literals ∪ unit_clause.false_literals
-			if values[i].decision_level >= 0
+			if lss[i].decision_level >= 0
 				parents = parents ∪ i
 			else
 				unit_literal = i
@@ -112,23 +141,23 @@ function unit_resolution!(problem::SATProblem, values::Vector{LiteralStatus}, le
 		end
 		unit_value = unit_literal ∈ unit_clause.true_literals
         undefined_variable_num[unit_clause_num] = -1
-		values, undefined_variable_num = decide_literal!(problem, values, level, undefined_variable_num, unit_value, unit_literal, parents)
+		lss, undefined_variable_num = decide_literal!(problem, lss, level, undefined_variable_num, unit_value, unit_literal, parents,unit_clause_num)
 	end
-	return values, undefined_variable_num
+	return lss, undefined_variable_num
 end
 
-function decide_literal!(problem::SATProblem, values::Vector{LiteralStatus}, level::Int, undefined_variable_num::Vector{Int},b::Bool,lit_num::Int,parents::Vector{Int})
-    values[lit_num] = LiteralStatus(b, level, parents)
+function decide_literal!(problem::SATProblem, lss::Vector{LiteralStatus}, level::Int, undefined_variable_num::Vector{Int},b::Bool,lit_num::Int,parents::Vector{Int},dc::Int)
+    lss[lit_num] = LiteralStatus(b, level, parents,dc)
     for i in 1:length(problem.clauses)
 		cl = problem.clauses[i]
         if undefined_variable_num[i] == -1
-			undefined_variable_num[i] = update_uvn(cl, values)
+			undefined_variable_num[i] = update_uvn(cl, lss)
             # if (lit_num in cl.true_literals && (!b)) || (lit_num in cl.false_literals && (b))
 			# 	undefined_variable_num[i] = length(cl.true_literals) + length(cl.false_literals)
 			# 	for j in cl.true_literals ∪ cl.false_literals
 			# 		ib = j in cl.true_literals
-			# 		if values[j].decision_level >=0 
-			# 			if values[j].value == ib
+			# 		if lss[j].decision_level >=0 
+			# 			if lss[j].value == ib
 			# 				undefined_variable_num[i] = -1
 			# 				break
 			# 			end
@@ -142,28 +171,28 @@ function decide_literal!(problem::SATProblem, values::Vector{LiteralStatus}, lev
             undefined_variable_num[i] = -1
         end
     end
-    return values, undefined_variable_num
+    return lss, undefined_variable_num
 end
 
-function decide_literal_with_unit_resolution!(problem::SATProblem, values::Vector{LiteralStatus}, level::Int, undefined_variable_num::Vector{Int},b::Bool,lit_num::Int,parents::Vector{Int})
-    values, undefined_variable_num = decide_literal!(problem, values, level, undefined_variable_num, b, lit_num, parents)
-    return unit_resolution!(problem, values, level, undefined_variable_num)
+function decide_literal_with_unit_resolution!(problem::SATProblem, lss::Vector{LiteralStatus}, level::Int, undefined_variable_num::Vector{Int},b::Bool,lit_num::Int,parents::Vector{Int},dc::Int)
+    lss, undefined_variable_num = decide_literal!(problem, lss, level, undefined_variable_num, b, lit_num, parents,dc::Int)
+    return unit_resolution!(problem, lss, level, undefined_variable_num)
 end
 
-function print_state(values,undefined_variable_num,level)
+function print_state(lss,undefined_variable_num,level)
 	@show level
-	@show getfield.(values,:value)
+	@show getfield.(lss,:value)
 	@show undefined_variable_num
-	@show getfield.(values,:decision_level)
-	@show getfield.(values,:decision_parents)
+	@show getfield.(lss,:decision_level)
+	@show getfield.(lss,:decision_parents)
 end
 
-function update_uvn(cl::SATClause, values::Vector{LiteralStatus})
+function update_uvn(cl::SATClause, lss::Vector{LiteralStatus})
 	res = length(cl.true_literals) + length(cl.false_literals)
 	for j in cl.true_literals ∪ cl.false_literals
 		ib = j in cl.true_literals
-		if values[j].decision_level >=0 
-			if values[j].value == ib
+		if lss[j].decision_level >=0 
+			if lss[j].value == ib
 				res = -1
 				break
 			end
@@ -173,6 +202,6 @@ function update_uvn(cl::SATClause, values::Vector{LiteralStatus})
 	return res
 end
 
-function max_level(values::Vector{LiteralStatus})
-	return maximum([x.decision_level for x in values])
+function max_level(lss::Vector{LiteralStatus})
+	return maximum([x.decision_level for x in lss])
 end
