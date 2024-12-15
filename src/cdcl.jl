@@ -114,10 +114,20 @@ end
 function decide_literal!(problem::SATProblem, values::Vector{LiteralStatus}, level::Int, undefined_variable_num::Vector{Int},b::Bool,lit_num::Int,parents::Vector{Int})
     values[lit_num] = LiteralStatus(b, level, parents)
     for i in 1:length(problem.clauses)
+		cl = problem.clauses[i]
         if undefined_variable_num[i] == -1
-            continue
+            if (lit_num in cl.true_literals && (!b)) || (lit_num in cl.false_literals && (b))
+				for i in cl.true_literals ∪ cl.false_literals
+					ib = i in cl.true_literals
+					if values[i].decision_level >=0 
+						if values[i].value == ib
+							break
+						end
+					end
+				end
+			end
+			continue
         end
-        cl = problem.clauses[i]
         if (lit_num in cl.true_literals) && (!b) || (lit_num in cl.false_literals) && (b)
             undefined_variable_num[i] -= 1
         elseif (lit_num in cl.true_literals) && (b) || (lit_num in cl.false_literals) && (!b)
