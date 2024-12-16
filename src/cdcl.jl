@@ -5,10 +5,11 @@ struct LiteralStatus
 	decision_clause::Int
 end
 
-function cdcl(problem::SATProblem)
+function cdcl(problem::SATProblem;viz = false)
 	if check_empty_clause(problem)
 		return false, []
 	end
+
 
 	lss = [LiteralStatus(false, -1, Int[],0) for _ in 1:literal_count(problem)]
 	undefined_variable_num = [length(cl.true_literals) + length(cl.false_literals) for cl in problem.clauses]
@@ -18,6 +19,8 @@ function cdcl(problem::SATProblem)
 	end
 
 	level = 0
+
+	viz && (fignum = vizall(lss,problem,undefined_variable_num,0))
 
     uvn_record = [copy(undefined_variable_num)]
     lss_record = [copy(lss)]
@@ -36,7 +39,12 @@ function cdcl(problem::SATProblem)
 		lss, undefined_variable_num = decide_literal!(problem, lss, level, undefined_variable_num, !boolvalue, literal, Int[],0)
 		push!(uvn_record, copy(undefined_variable_num))
 		push!(lss_record, copy(lss))
+
+		viz && (fignum = vizall(lss,problem,undefined_variable_num,fignum))
+
     	lss, undefined_variable_num = unit_resolution!(problem, lss, level, undefined_variable_num)
+
+		viz && (fignum = vizall(lss,problem,undefined_variable_num,fignum))
 
 		while any(==(0), undefined_variable_num)
 			if level == 0
@@ -45,19 +53,20 @@ function cdcl(problem::SATProblem)
 
 			fuip,mlevel,recorded_list,val,dc = first_unique_implication_point(problem, lss, level, undefined_variable_num)
 			if recorded_list == Int[] 
-				level = findlast(x -> lss[x].value, level_literal) 
-				if isnothing(level)
-					return false, []
-				end
-				level = level - 1
-				literal = level_literal[level+1]
-				level_literal = level_literal[1:level]
-				lss = lss_record[level+1]
-				lss_record = lss_record[1:(level+1)]
-				undefined_variable_num = uvn_record[level+1]
-				uvn_record = uvn_record[1:(level+1)]
-				lss[literal] = LiteralStatus(true, -1, Int[],0)
-				break
+				level = 0
+				lss = lss_record[1]
+				undefined_variable_num = uvn_record[1]
+				lss, undefined_variable_num = decide_literal!(problem, lss, level, undefined_variable_num, val, fuip, Int[],0)
+
+				viz && (fignum = vizall(lss,problem,undefined_variable_num,fignum))
+		
+				lss, undefined_variable_num = unit_resolution!(problem, lss, level, undefined_variable_num)
+		
+				viz && (fignum = vizall(lss,problem,undefined_variable_num,fignum))
+
+				uvn_record = [copy(undefined_variable_num)]
+				lss_record = [copy(lss)]
+				continue
 			end
             level = mlevel
             lss = lss_record[mlevel+1]
@@ -70,6 +79,9 @@ function cdcl(problem::SATProblem)
             lss, undefined_variable_num = decide_literal_with_unit_resolution!(problem, lss, level, undefined_variable_num, val, fuip, recorded_list,dc)
 			push!(lss_record, copy(lss))
 			push!(uvn_record, copy(undefined_variable_num))
+
+			viz && (fignum = vizall(lss,problem,undefined_variable_num,fignum))
+
 		end
 		uvn_record[end] = copy(undefined_variable_num)
 		lss_record[end] = copy(lss)
@@ -80,13 +92,6 @@ end
 function first_unique_implication_point(problem::SATProblem, lss::Vector{LiteralStatus}, level::Int, undefined_variable_num::Vector{Int})
 	cl_num = findfirst(==(0), undefined_variable_num)
 	cl = problem.clauses[cl_num]
-
-	for i in lss
-		@show i
-	end
-	@show cl
-
-	@show level
 	var_queue = [i for i in cl.true_literals ∪ cl.false_literals if lss[i].decision_level == level]
 	recorded_list = [i for i in cl.true_literals ∪ cl.false_literals if lss[i].decision_level < level]
 	while true

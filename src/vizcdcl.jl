@@ -10,7 +10,7 @@ function lss2digraph(lss::Vector{LiteralStatus})
 end
 
 function vizlss(lss::Vector{LiteralStatus})
-	minlevel = minimum([lss[i].decision_level for i in 1:length(lss)])
+	minlevel = -1
 	dcolors = distinguishable_colors(max_level(lss) - minlevel + 1, [RGB(1, 1, 1), RGB(0, 0, 0)], dropseed = true)
 	d = @drawsvg begin
 		fontsize(18)
@@ -37,19 +37,30 @@ function vizlss(lss::Vector{LiteralStatus})
 				rotate(θ)
 				sethue("black")
 
-				label("CL.$(lss[n].decision_clause)", :s, O, offset = 10)
+				label("CL.$(lss[d].decision_clause)", :s, O, offset = 10)
 			end,
 		)
 	end
 	return d, dcolors
 end
 
-function vizall(lss::Vector{LiteralStatus}, sat::SATProblem, undefined_variable_num::Vector{Int})
-	minlevel = minimum([lss[i].decision_level for i in 1:length(lss)])
+function vizall(lss::Vector{LiteralStatus}, sat::SATProblem, undefined_variable_num::Vector{Int},fignum)
+   vizall(lss, sat, undefined_variable_num;fignum)
+   return fignum + 1 
+end
+function vizall(lss::Vector{LiteralStatus}, sat::SATProblem, undefined_variable_num::Vector{Int};fignum = nothing)
+	minlevel = -1
 	p1, dcolors = vizlss(lss)
 	w = p1.width
 	d = p1.height
-	d2 = @drawsvg begin
+
+    if isnothing(fignum)
+        d2 = Drawing(2 * w, d + 40*length(sat.clauses))
+    else
+        d2 = Drawing(2 * w, d + 40*length(sat.clauses), "images/$(fignum).svg")
+    end
+	# d2 = @drawsvg begin
+        translate(w, d )
 		placeimage(p1, Point(-w, -d))
 		translate(w / 4, 0)
 		len = 70
@@ -70,10 +81,9 @@ function vizall(lss::Vector{LiteralStatus}, sat::SATProblem, undefined_variable_
         rect(Point(w/2-25, -w / 2 - len * ldc + length(dcolors) * len / 2 - len / 2-35), 50, 50, action=:stroke)
         circle(Point(w/2, -w / 2 - len * ldc + length(dcolors) * len / 2 - len / 2 + 2*len-10), 25, action=:stroke)
 
-		translate(-w / 4, 0)
+		translate(-w / 4, length(sat.clauses)*35/2)
 		sethue("black")
 
-		@show length(sat.clauses)
 		t = Table(length(sat.clauses) + 1, 4, 250, 35) # rows, columns, wide, high
 		fontsize(18)
 		text("Clause number", t[1], halign = :center, valign = :middle)
@@ -101,6 +111,7 @@ function vizall(lss::Vector{LiteralStatus}, sat::SATProblem, undefined_variable_
 
 
 		end
-	end 2 * w 2 * d
+	# end 2 * w d+ 40*length(sat.clauses) "images/$(fignum).svg"
+    finish()
 	return d2
 end

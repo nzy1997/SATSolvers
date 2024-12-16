@@ -1,6 +1,7 @@
 using Karnak, Graphs, NetworkLayout, Colors, SimpleWeightedGraphs
 using Test, SATSolvers,Random
 using SATSolvers:LiteralStatus,update_uvn
+using Karnak.Luxor
 
 @testset "vizall" begin
     cl1 = SATClause(5, [2], [1])
@@ -21,5 +22,5 @@ using SATSolvers:LiteralStatus,update_uvn
     d1 = vizlss(lss)
 
     d2 = vizall(lss,problem,undefined_variable_num)
-    display(d2)
+    @show d2 isa Luxor.Drawing
 end

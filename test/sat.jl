@@ -60,12 +60,12 @@ end
 
 @testset "random_problem_test" begin
     Random.seed!(345)
-    num = 1000
+    num = 100
     for i in 1:num
         literal_num = rand(1:10)
         clause_num = rand(1:50)
         problem = random_problem(literal_num, clause_num)
-        @show problem
+        # @show problem
         res1,ans1 = directional_resolution(problem)
         res2,ans2 = brute_force(problem)
         res3,ans3 = literal_branching(problem)

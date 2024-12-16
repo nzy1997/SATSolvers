@@ -16,3 +16,7 @@ end
 @testset "cdcl.jl" begin
     include("cdcl.jl")
 end
+
+@testset "vizcdcl.jl" begin
+    include("vizcdcl.jl")
+end
