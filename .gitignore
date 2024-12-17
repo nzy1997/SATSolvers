@@ -6,3 +6,4 @@
 /docs/build/
 .vscode/
 images/
+.DS_Store
