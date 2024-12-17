@@ -60,7 +60,7 @@ end
 
 @testset "random_problem_test" begin
     Random.seed!(345)
-    num = 100
+    num = 10000
     for i in 1:num
         literal_num = rand(1:10)
         clause_num = rand(1:50)

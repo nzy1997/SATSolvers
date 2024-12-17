@@ -19,8 +19,7 @@ using Karnak.Luxor
     lss[5]= LiteralStatus(false, 1, [1,2], 2)
 
     undefined_variable_num = [update_uvn(cl,lss) for cl in problem.clauses]
-    d1 = vizlss(lss)
 
     d2 = vizall(lss,problem,undefined_variable_num)
-    @show d2 isa Luxor.Drawing
+    @test d2 isa Luxor.Drawing
 end

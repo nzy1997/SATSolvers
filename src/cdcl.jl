@@ -35,8 +35,7 @@ function cdcl(problem::SATProblem;viz = false)
 
 		#decide literal
 		
-		boolvalue = lss[literal].value
-		lss, undefined_variable_num = decide_literal!(problem, lss, level, undefined_variable_num, !boolvalue, literal, Int[],0)
+		lss, undefined_variable_num = decide_literal!(problem, lss, level, undefined_variable_num, true, literal, Int[],0)
 		push!(uvn_record, copy(undefined_variable_num))
 		push!(lss_record, copy(lss))
 
@@ -66,22 +65,21 @@ function cdcl(problem::SATProblem;viz = false)
 
 				uvn_record = [copy(undefined_variable_num)]
 				lss_record = [copy(lss)]
-				continue
+			else
+				level = mlevel
+				lss = lss_record[mlevel+1]
+				undefined_variable_num = uvn_record[mlevel+1]
+
+				lss_record = lss_record[1:mlevel]
+				uvn_record = uvn_record[1:mlevel]
+		
+
+				lss, undefined_variable_num = decide_literal_with_unit_resolution!(problem, lss, level, undefined_variable_num, val, fuip, recorded_list,dc)
+				push!(lss_record, copy(lss))
+				push!(uvn_record, copy(undefined_variable_num))
+
+				viz && (fignum = vizall(lss,problem,undefined_variable_num,fignum))
 			end
-            level = mlevel
-            lss = lss_record[mlevel+1]
-            undefined_variable_num = uvn_record[mlevel+1]
-
-			lss_record = lss_record[1:mlevel]
-			uvn_record = uvn_record[1:mlevel]
-	
-
-            lss, undefined_variable_num = decide_literal_with_unit_resolution!(problem, lss, level, undefined_variable_num, val, fuip, recorded_list,dc)
-			push!(lss_record, copy(lss))
-			push!(uvn_record, copy(undefined_variable_num))
-
-			viz && (fignum = vizall(lss,problem,undefined_variable_num,fignum))
-
 		end
 		uvn_record[end] = copy(undefined_variable_num)
 		lss_record[end] = copy(lss)
@@ -119,7 +117,7 @@ function first_unique_implication_point(problem::SATProblem, lss::Vector{Literal
 
 	end
 	if isempty(recorded_list)
-		mlevel = level
+		mlevel = 0
 	else
     	mlevel = maximum([lss[i].decision_level for i in recorded_list])
 	end
@@ -156,20 +154,9 @@ function decide_literal!(problem::SATProblem, lss::Vector{LiteralStatus}, level:
     for i in 1:length(problem.clauses)
 		cl = problem.clauses[i]
         if undefined_variable_num[i] == -1
-			undefined_variable_num[i] = update_uvn(cl, lss)
-            # if (lit_num in cl.true_literals && (!b)) || (lit_num in cl.false_literals && (b))
-			# 	undefined_variable_num[i] = length(cl.true_literals) + length(cl.false_literals)
-			# 	for j in cl.true_literals ∪ cl.false_literals
-			# 		ib = j in cl.true_literals
-			# 		if lss[j].decision_level >=0 
-			# 			if lss[j].value == ib
-			# 				undefined_variable_num[i] = -1
-			# 				break
-			# 			end
-			# 			undefined_variable_num[i] -= 1
-			# 		end
-			# 	end
-			# end
+            if (lit_num in cl.true_literals && (!b)) || (lit_num in cl.false_literals && (b))
+				undefined_variable_num[i] = update_uvn(cl, lss)
+			end
         elseif (lit_num in cl.true_literals) && (!b) || (lit_num in cl.false_literals) && (b)
             undefined_variable_num[i] -= 1
         elseif (lit_num in cl.true_literals) && (b) || (lit_num in cl.false_literals) && (!b)
@@ -180,16 +167,8 @@ function decide_literal!(problem::SATProblem, lss::Vector{LiteralStatus}, level:
 end
 
 function decide_literal_with_unit_resolution!(problem::SATProblem, lss::Vector{LiteralStatus}, level::Int, undefined_variable_num::Vector{Int},b::Bool,lit_num::Int,parents::Vector{Int},dc::Int)
-    lss, undefined_variable_num = decide_literal!(problem, lss, level, undefined_variable_num, b, lit_num, parents,dc::Int)
+    lss, undefined_variable_num = decide_literal!(problem, lss, level, undefined_variable_num, b, lit_num, parents,dc)
     return unit_resolution!(problem, lss, level, undefined_variable_num)
-end
-
-function print_state(lss,undefined_variable_num,level)
-	@show level
-	@show getfield.(lss,:value)
-	@show undefined_variable_num
-	@show getfield.(lss,:decision_level)
-	@show getfield.(lss,:decision_parents)
 end
 
 function update_uvn(cl::SATClause, lss::Vector{LiteralStatus})
